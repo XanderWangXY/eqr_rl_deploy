@@ -1,0 +1,43 @@
+ehr_hardware_node:
+  ros__parameters:
+    NIC: "enp2s0"
+    Core: 1
+    COM_Port: "/dev/ttyACM0"
+    BaudRate: 921600
+    AT10_Status: OFF
+
+    JointTypeSeq: 
+      - ENCOS_P2_25
+      - ENCOS_P2_25
+      - ENCOS_P2_25
+      - ENCOS_P2_25
+      - ENCOS_P2_25
+      - ENCOS_P2_25
+
+      - ENCOS_P2_25
+      - ENCOS_P2_25
+      - ENCOS_P2_25
+      - ENCOS_P2_25
+      - ENCOS_P2_25
+      - ENCOS_P2_25
+
+    JointDir: 
+      - 1.0
+      - 1.0
+      - 1.0
+
+      - 1.0
+      - -1.0
+      - -1.0
+
+      - -1.0 
+      - 1.0   
+      - 1.0
+
+      - -1.0
+      - -1.0
+      - -1.0
+
+
+
+
