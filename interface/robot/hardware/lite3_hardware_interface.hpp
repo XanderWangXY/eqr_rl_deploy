@@ -18,7 +18,7 @@ public:
         std::cout << robot_name << " is using EHR Hardware Interface" << std::endl;
 
         ehr_hw_ = std::make_shared<EhrHardware>();
-        ehr_hw_->GetInterface()->Init("./hardware_interface_ehr02.yaml");
+        ehr_hw_->GetInterface()->Init("/home/ehr/wxy/eqr_rl_deploy/interface/robot/hardware/hardware_interface_ehr02.yaml");
 
         state_.joint_num = dof_num_;
         state_.q_joints = new double[dof_num_];

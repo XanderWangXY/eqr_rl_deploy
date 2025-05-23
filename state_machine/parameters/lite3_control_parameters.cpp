@@ -7,8 +7,8 @@ void ControlParameters::GenerateLite3Parameters(){
     thigh_len_ = 0.20;
     shank_len_ = 0.2023;
 
-    pre_height_ = 0.18;
-    stand_height_ = 0.28;
+    pre_height_ = 0.25;
+    stand_height_ = 0.35;
     swing_leg_kp_ << 100., 100., 100.;
     swing_leg_kd_ << 2.5, 2.5, 2.5;
 

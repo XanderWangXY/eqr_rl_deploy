@@ -12,6 +12,8 @@
 #define STANDUP_STATE_HPP_
 
 #include "state_base.h"
+#include <ctime>
+#include <chrono>
 
 class StandUpState : public StateBase{
 private:
@@ -20,6 +22,8 @@ private:
     VecXf goal_joint_pos_, kp_, kd_;
     MatXf joint_cmd_;
     float stand_duration_ = 2.;
+    // 存储程序启动时间
+    static std::chrono::time_point<std::chrono::steady_clock> program_start_time;
 
     void GetRobotJointValue(){
         current_joint_pos_ = ri_ptr_->GetJointPosition();
@@ -76,6 +80,15 @@ private:
         theta = LimitNumber(theta, cp_ptr_->fl_joint_lower_(2), cp_ptr_->fl_joint_upper_(2));
         return theta;
     }
+    // 全局计时函数
+    static double GetGlobalTimeStamp() {
+        if (program_start_time.time_since_epoch().count() == 0) {
+            program_start_time = std::chrono::steady_clock::now();
+        }
+        auto now = std::chrono::steady_clock::now();
+        auto duration = now - program_start_time;
+        return std::chrono::duration<double>(duration).count();
+    }
 
 public:
     StandUpState(const RobotType& robot_type, const std::string& state_name, 
@@ -100,6 +113,12 @@ public:
     virtual void OnExit() {
     }
     virtual void Run() {
+        // std::cout<<"run_time_:"<<run_time_<<std::endl;
+        // //std::cout<<"time_stamp_record_:"<<time_stamp_record_<<std::endl;
+        // std::cout<<"stand_duration_:"<<stand_duration_<<std::endl;
+        double global_time = GetGlobalTimeStamp() ;  // 转换为秒
+        //std::cout << "Global time since program start: " << global_time << " s" << std::endl;
+        
         GetRobotJointValue();
         VecXf planning_joint_pos(current_joint_pos_.rows());
         VecXf planning_joint_vel(current_joint_pos_.rows());
@@ -130,6 +149,7 @@ public:
         joint_cmd_.col(1) = planning_joint_pos;
         joint_cmd_.col(3) = planning_joint_vel;
         ri_ptr_->SetJointCommand(joint_cmd_);
+       // std::cout<<"joint_cmd_:"<<joint_cmd_<<std::endl;
     }
     virtual bool LoseControlJudge() {
         if(uc_ptr_->GetUserCommand().target_mode == int(RobotMotionState::JointDamping)) return true;
@@ -147,6 +167,7 @@ public:
     }
 };
 
-
+// 初始化静态成员变量
+std::chrono::time_point<std::chrono::steady_clock> StandUpState::program_start_time;
 
 #endif
