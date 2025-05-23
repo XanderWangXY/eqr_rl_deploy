@@ -20,6 +20,8 @@
 #include "skydroid_gamepad_interface.hpp"
 #include "retroid_gamepad_interface.hpp"
 #include "keyboard_interface.hpp"
+
+#include "logi_interface.hpp"
 #ifdef USE_RAISIM
     #include "simulation/jueying_raisim_simulation.hpp"
 #endif
@@ -104,7 +106,8 @@ public:
         std::string urdf_path = "";
         // uc_ptr_ = std::make_shared<SkydroidGamepadInterface>(12121);
         //uc_ptr_ = std::make_shared<RetroidGamepadInterface>(12121);
-        uc_ptr_ = std::make_shared<KeyboardInterface>();
+        //uc_ptr_ = std::make_shared<KeyboardInterface>();
+        uc_ptr_ = std::make_shared<LogiInterface>();
 
         if(robot_type == RobotType::Lite3){
             urdf_path = GetAbsPath()+"/../third_party/URDF_model/lite3_urdf/Lite3/urdf/Lite3.urdf";
