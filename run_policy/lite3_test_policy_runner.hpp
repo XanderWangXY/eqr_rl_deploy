@@ -39,7 +39,7 @@ private:
 
 public:
     Lite3TestPolicyRunner(std::string policy_name):PolicyRunnerBase(policy_name){
-        policy_path_ = GetAbsPath()+"/../policy/rough_33500.pt";
+        policy_path_ = GetAbsPath()+"/../policy/model_20000.pt";
         obs_total_dim_ = obs_dim_ + obs_his_num_*obs_dim_;
         dof_pos_default_.setZero(12);
         dof_pos_default_ << 0.0, -0.5, 1.1,
@@ -48,7 +48,7 @@ public:
                             -0.0, -0.5, 1.1;
         kp_ = 22.*VecXf::Ones(12);
         kd_ = 0.7*VecXf::Ones(12);
-        max_cmd_vel_ << 0.8, 0.8, 1.2;
+        max_cmd_vel_ << 1.2, 0.8, 1.2;
 
         try { 
             backbone_ = torch::jit::load(policy_path_); 
@@ -90,6 +90,9 @@ public:
 
     RobotAction GetRobotAction(const RobotBasicState& ro){
         Vec3f cmd_vel = ro.cmd_vel_normlized.cwiseProduct(max_cmd_vel_);
+        
+        Vec3f base_rpy_zero = Vec3f::Zero();         // 强制 RPY = 0
+        Vec3f base_omega_zero = Vec3f::Zero();       // 强制角速度 = 0
 
         if(run_cnt_ == 0){
             last_dof_pos2_ = last_dof_pos1_ = last_dof_pos0_ = ro.joint_pos;
@@ -126,6 +129,7 @@ public:
         obs_total_.segment(0, obs_dim_) = current_obs_;
         obs_total_.segment(obs_dim_, obs_dim_*obs_his_num_) = obs_history_;
         //std::cout << "ro.joint_pos :" << (ro.joint_pos).transpose() << std::endl;
+        std::cout << "current_obs_ :" << current_obs_.transpose() << std::endl;
 
         last_dof_pos2_ = last_dof_pos1_;
         last_dof_pos1_ = last_dof_pos0_;

@@ -145,7 +145,7 @@ public:
         joint_cmd_.col(1) = planning_joint_pos;
         joint_cmd_.col(3) = planning_joint_vel;
         ri_ptr_->SetJointCommand(joint_cmd_);
-        std::cout<<"joint_cmd_:"<<joint_cmd_<<std::endl;
+        //std::cout<<"joint_cmd_:"<<joint_cmd_<<std::endl;
     }
     virtual bool LoseControlJudge() {
         if(uc_ptr_->GetUserCommand().target_mode == int(RobotMotionState::JointDamping)) return true;
