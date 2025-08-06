@@ -17,11 +17,15 @@ import time
 import os
 
 urdfPath = {
-"lite3":    "/home/ehr/wxy/eqr_rl_deploy/third_party/eqr1_description/urdf/eqr1_pin.urdf",
+"eqr1":    "../../../third_party/URDF/eqr1_description/urdf/eqr1_pin.urdf",
+"lite3":    "../../../third_party/URDF/lite3_pybullet/urdf/Lite3.urdf",
+"go2":    "../../../third_party/URDF/go2_description/urdf/go2_description.urdf",
 }
 
 initJointPos = {
-"lite3":    [0, -0.5, 1.1]*4,
+"eqr1":    [0, -0.5, 1.1]*4,
+"lite3":    [0, -1.35453, 2.54948]*4,
+"go2":    [0.0, 0.8, -1.5]*4,
 }
 
 class PyBulletSimulation:
@@ -91,6 +95,12 @@ class PyBulletSimulation:
                                         controlMode=p.TORQUE_CONTROL, 
                                         forces=self.inputTorque.reshape(self.dofNum).tolist())
             p.stepSimulation()
+            # # 更新摄像头追踪
+            # base_pos, _ = p.getBasePositionAndOrientation(self.robot)
+            # p.resetDebugVisualizerCamera(cameraDistance=1.5,
+            #                             cameraYaw=45,
+            #                             cameraPitch=-30,
+            #                             cameraTargetPosition=base_pos)
             costTime = time.time() - startTime
             if costTime < 0.001:
                 time.sleep(0.001-costTime)
@@ -163,7 +173,7 @@ class PyBulletSimulation:
 
 
 if __name__ == '__main__':
-    ps = PyBulletSimulation("lite3")
+    ps = PyBulletSimulation("go2")
     receiveThread = threading.Thread(target=ps.receiveJointCmd)
     receiveThread.start()
     ps.startSimulation()

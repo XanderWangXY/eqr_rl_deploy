@@ -163,7 +163,7 @@ python pybullet_simulation.py
 ```bash
 mkdir build 
 cd build 
-cmake .. -DBUILD_PLATFORM=x86 -DBUILD_SIM=ON -DSEND_REMOTE=OFF 
+cmake .. -DROBOT_TYPE=Lite3 -DBUILD_PLATFORM=x86 -DBUILD_SIM=ON -DSEND_REMOTE=OFF
 make -j4 
 ```
 

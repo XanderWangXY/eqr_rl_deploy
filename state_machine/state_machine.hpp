@@ -20,15 +20,23 @@
 #include "skydroid_gamepad_interface.hpp"
 #include "retroid_gamepad_interface.hpp"
 #include "keyboard_interface.hpp"
-
 #include "logi_interface.hpp"
+
 #ifdef USE_RAISIM
     #include "simulation/jueying_raisim_simulation.hpp"
 #endif
 #ifdef USE_PYBULLET
     #include "simulation/pybullet_interface.hpp"
 #endif
-#include "hardware/lite3_hardware_interface.hpp"
+
+#ifdef ROBOT_TYPE_Lite3
+#include "hardware/lite3_hardware_interface.hpp"  // Lite3硬件接口
+#elif ROBOT_TYPE_eqr1
+#include "hardware/eqr_hardware_interface.hpp"    // EQR硬件接口（需用户提前创建该文件）
+#elif ROBOT_TYPE_Go2
+#include "hardware/go2_hardware_interface.hpp"    // Go2硬件接口（需用户提前创建该文件）
+#endif
+
 #include "data_streaming.hpp"
 
 class StateMachine{
@@ -106,11 +114,12 @@ public:
         std::string urdf_path = "";
         // uc_ptr_ = std::make_shared<SkydroidGamepadInterface>(12121);
         //uc_ptr_ = std::make_shared<RetroidGamepadInterface>(12121);
-        //uc_ptr_ = std::make_shared<KeyboardInterface>();
-        uc_ptr_ = std::make_shared<LogiInterface>();
-
+        uc_ptr_ = std::make_shared<KeyboardInterface>();
+        //uc_ptr_ = std::make_shared<LogiInterface>();
+        
+        #ifdef ROBOT_TYPE_Lite3
         if(robot_type == RobotType::Lite3){
-            urdf_path = GetAbsPath()+"/../third_party/URDF_model/lite3_urdf/Lite3/urdf/Lite3.urdf";
+            urdf_path = GetAbsPath()+"/../third_party/URDF/lite3_pybullet/urdf/Lite3.urdf";
             #ifdef USE_RAISIM
                 ri_ptr_ = std::make_shared<JueyingRaisimSimulation>(activation_key, urdf_path, "Lite3_sim");
             #endif
@@ -120,7 +129,40 @@ public:
                 ri_ptr_ = std::make_shared<Lite3HardwareInterface>("Lite3");
             #endif
             cp_ptr_ = std::make_shared<ControlParameters>(robot_type);
-        }else{
+        }
+        #endif
+
+        #ifdef ROBOT_TYPE_eqr1
+        if(robot_type == RobotType::eqr1){
+            urdf_path = GetAbsPath()+"/../third_party/URDF/eqr1_description/urdf/eqr1_pin.urdf";
+            #ifdef USE_RAISIM
+                ri_ptr_ = std::make_shared<JueyingRaisimSimulation>(activation_key, urdf_path, "EQR_sim");
+            #endif
+            #ifdef USE_PYBULLET
+                ri_ptr_ = std::make_shared<PybulletInterface>("eqr1");
+            #else
+                ri_ptr_ = std::make_shared<EqrHardwareInterface>("eqr1");
+            #endif
+            cp_ptr_ = std::make_shared<ControlParameters>(robot_type);
+        }
+        #endif
+
+        #ifdef ROBOT_TYPE_Go2
+        if(robot_type == RobotType::Go2){
+            urdf_path = GetAbsPath()+"/../third_party/URDF/go2_description/urdf/go2_description.urdf";
+            #ifdef USE_RAISIM
+                ri_ptr_ = std::make_shared<JueyingRaisimSimulation>(activation_key, urdf_path, "Go2_sim");
+            #endif
+            #ifdef USE_PYBULLET
+                ri_ptr_ = std::make_shared<PybulletInterface>("Go2");
+            #else
+                ri_ptr_ = std::make_shared<Go2HardwareInterface>("Go2");
+            #endif
+            cp_ptr_ = std::make_shared<ControlParameters>(robot_type);
+        }
+        #endif
+
+        else{
             std::cerr << "error" << std::endl;
         }
 
@@ -153,8 +195,14 @@ public:
     void Run(){
         int cnt = 0;
         static double time_record = 0;
+        
+        // 新增：高精度时钟记录循环开始时间
+        auto loop_start_time = std::chrono::high_resolution_clock::now();
+        const std::chrono::microseconds target_period(20000); // 20ms 目标周期
+
         while(true){
-            if(ri_ptr_->GetInterfaceTimeStamp()!= time_record){
+            // if(ri_ptr_->GetInterfaceTimeStamp()!= time_record)
+            {
                 time_record = ri_ptr_->GetInterfaceTimeStamp();
                 current_controller_ -> Run();
                 if(current_controller_->LoseControlJudge()) next_state_name_ = StateName::kJointDamping;
@@ -171,7 +219,17 @@ public:
                 ++cnt;
                 this->GetDataStreaming();
             }
-            std::this_thread::sleep_for(std::chrono::microseconds(20000));
+            // std::this_thread::sleep_for(std::chrono::microseconds(20000));
+            // 新增：动态计算剩余睡眠时间
+            auto now = std::chrono::high_resolution_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - loop_start_time);
+            if (elapsed < target_period) {
+                // 剩余时间 = 目标周期 - 已消耗时间
+                auto sleep_time = target_period - elapsed;
+                std::this_thread::sleep_for(sleep_time);
+            }
+            // 重置循环开始时间，确保下一周期从当前时间点计算
+            loop_start_time = std::chrono::high_resolution_clock::now();
         }
 
         uc_ptr_->Stop();

@@ -14,6 +14,8 @@
 #include "state_base.h"
 #include "policy_runner_base.hpp"
 #include "lite3_test_policy_runner.hpp"
+#include "eqr1_policy_runner.hpp" 
+#include "go2_policy_runner.hpp"
 
 class RLControlState : public StateBase
 {
@@ -22,7 +24,7 @@ private:
     int state_run_cnt_;
 
     std::shared_ptr<PolicyRunnerBase> policy_ptr_;
-    std::shared_ptr<Lite3TestPolicyRunner> test_policy_;
+    std::shared_ptr<PolicyRunnerBase> test_policy_;
     std::thread run_policy_thread_;
     bool start_flag_ = true;
 
@@ -70,7 +72,7 @@ private:
                                     +(end_timestamp.tv_nsec-start_timestamp.tv_nsec)/1e6;
                 // std::cout << "cost_time:  " << policy_cost_time_ << " ms\n";
             }
-            std::this_thread::sleep_for(std::chrono::microseconds(100));
+            // std::this_thread::sleep_for(std::chrono::microseconds(100));
         }
     }
 
@@ -79,7 +81,19 @@ public:
         std::shared_ptr<ControllerData> data_ptr):StateBase(robot_type, state_name, data_ptr){
             std::memset(&rbs_, 0, sizeof(rbs_));
 
-            test_policy_ = std::make_shared<Lite3TestPolicyRunner>("test");
+            if(robot_type == RobotType::Lite3) {
+                test_policy_ = std::make_shared<Lite3TestPolicyRunner>("test");
+            } 
+            else if(robot_type == RobotType::eqr1) {
+                test_policy_ = std::make_shared<Eqr1PolicyRunner>("test");  // 使用eqr1策略
+            } 
+            else if(robot_type == RobotType::Go2) {
+                test_policy_ = std::make_shared<Go2PolicyRunner>("test");  // 使用eqr1策略
+            } 
+            else {
+                std::cerr << "Unsupported robot type for RL policy: " << static_cast<int>(robot_type) << std::endl;
+                exit(1);
+            }
 
             policy_ptr_ = test_policy_;
             if(!policy_ptr_){

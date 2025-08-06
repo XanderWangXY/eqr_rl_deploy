@@ -1,6 +1,6 @@
 build
 *.zip
-.vscode
+.idea
 
 
 data/*

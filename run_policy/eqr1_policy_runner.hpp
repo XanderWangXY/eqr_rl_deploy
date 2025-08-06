@@ -1,0 +1,178 @@
+/**
+ * @file lite3_test_policy_runner.hpp
+ * @brief 
+ * @author mazunwang
+ * @version 1.0
+ * @date 2024-06-07
+ * 
+ * @copyright Copyright (c) 2024  DeepRobotics
+ * 
+ */
+
+#ifndef EQR1_POLICY_RUNNER_HPP_
+#define EQR1_POLICY_RUNNER_HPP_
+
+#include "policy_runner_base.hpp"
+
+class Eqr1PolicyRunner : public PolicyRunnerBase
+{
+private:
+    std::string policy_path_;
+
+    torch::jit::Module backbone_;
+    torch::Tensor action_tensor_, obs_total_tensor_;
+    std::vector<c10::IValue> obs_vector_{};
+
+    int obs_dim_ = 45;
+    int obs_his_num_ = 50;
+    int act_dim_ = 12;
+    int obs_total_dim_;
+
+    VecXf current_obs_, obs_history_, obs_total_;
+    VecXf last_dof_pos0_, last_dof_pos1_, last_dof_pos2_;
+    VecXf last_dof_vel0_, last_dof_vel1_;
+    VecXf last_action1_, last_action0_, action_,last_action;
+
+    VecXf dof_pos_default_;
+    VecXf kp_, kd_;
+    Vec3f max_cmd_vel_;
+
+public:
+    Eqr1PolicyRunner(std::string policy_name):PolicyRunnerBase(policy_name){
+        policy_path_ = GetAbsPath()+"/../policy/p22d1.5.pt";
+        obs_total_dim_ = obs_dim_ + obs_his_num_*obs_dim_;
+        dof_pos_default_.setZero(12);
+        dof_pos_default_ << 0.0, -0.5, 1.1,
+                            -0.0, -0.5, 1.1,
+                            0.0, -0.5, 1.1,
+                            -0.0, -0.5, 1.1;
+        kp_ = 22.*VecXf::Ones(12);
+        kd_ = 1.5*VecXf::Ones(12);
+        max_cmd_vel_ << 1.3, 0.8, 1.2;
+
+        try { 
+            backbone_ = torch::jit::load(policy_path_); 
+            backbone_.eval();
+        }
+        catch (const c10::Error &e) { std::cerr << "error loading policy at " << policy_path_ << "\n" << e.what(); }
+
+        for(int i=0;i<10;++i){
+            torch::Tensor reaction;
+            obs_vector_.clear();
+            obs_vector_.emplace_back(torch::ones({1, obs_total_dim_}));  
+            reaction = backbone_.forward(obs_vector_).toTensor();
+            if(i==9) std::cout << policy_name_ << " network test success" << std::endl;
+        }
+
+        decimation_ = 1;
+    }
+    ~Eqr1PolicyRunner(){
+    }
+
+    void DisplayPolicyInfo(){
+        std::cout << "name : " << policy_name_ << std::endl; 
+        std::cout << "path : " << policy_path_ << std::endl;
+        std::cout << "dim  : " << obs_dim_ << " " << obs_his_num_ << " " << obs_total_dim_ << " " << act_dim_ << std::endl;
+        std::cout << "dof  : " << dof_pos_default_.transpose() << std::endl;
+        std::cout << "kp   : " << kp_.transpose() << std::endl;
+        std::cout << "kd   : " << kd_.transpose() << std::endl;
+        std::cout << "max_v: " << max_cmd_vel_.transpose() << std::endl;
+    }
+    
+
+    void  OnEnter(){
+        run_cnt_ = 0;
+        current_obs_.setZero(obs_dim_);
+        obs_history_.setZero(obs_dim_*obs_his_num_);
+        obs_total_.setZero(obs_total_dim_); 
+        std::cout << "enter " << policy_name_ << std::endl;
+    }
+
+    RobotAction GetRobotAction(const RobotBasicState& ro){
+        Vec3f cmd_vel = ro.cmd_vel_normlized.cwiseProduct(max_cmd_vel_);
+
+        // 添加此处对 rpy 和 omega 的重写：
+// Vec3f base_rpy_zero = Vec3f::Zero();         // 强制 RPY = 0
+// Vec3f base_omega_zero = Vec3f::Zero();       // 强制角速度 = 0
+
+        if(run_cnt_ == 0){
+            last_dof_pos2_ = last_dof_pos1_ = last_dof_pos0_ = ro.joint_pos;
+            last_dof_vel1_ = last_dof_vel0_ = ro.joint_vel;
+            last_action1_ = last_action0_ = ro.joint_pos;
+            last_action0_.setZero(ro.joint_pos.size());
+        }
+        // std::cout << "cmd_vel :" << cmd_vel.transpose() << std::endl;
+        // std::cout << "ro.base_rpy :" << ro.base_rpy.transpose() << std::endl;
+        // std::cout << "ro.base_omega :" << ro.base_omega.transpose() << std::endl;
+        //std::cout << "ro.joint_pos - dof_pos_default_ :" << (ro.joint_pos - dof_pos_default_).transpose() << std::endl;
+        // std::cout << "0.1*ro.joint_vel :" << (0.1*ro.joint_vel).transpose() << std::endl;
+        // std::cout << "last_action0_ :" << last_action0_.transpose() << std::endl;
+        //std::cout << "ro.joint_pos:" << (ro.joint_pos).transpose() << std::endl;
+        
+        current_obs_.setZero(obs_dim_);
+        current_obs_ << cmd_vel,
+                        ro.base_rpy,
+                        ro.base_omega,
+                        ro.joint_pos - dof_pos_default_,
+                        0.1*ro.joint_vel,
+                        // last_dof_pos2_, 
+                        // last_dof_pos1_,
+                        // last_dof_pos0_,  // 72
+                        // 0.1*last_dof_vel1_,
+                        // 0.1*last_dof_vel0_,
+                        // last_action1_,
+                        last_action0_;
+
+        //std::cout<<ro.base_rpy.transpose()<<std::endl;
+
+        VecXf obs_history_record = obs_history_.segment(obs_dim_, (obs_his_num_-1)*obs_dim_).eval();
+        obs_history_.segment(0, (obs_his_num_-1)*obs_dim_) = obs_history_record;
+        obs_history_.segment((obs_his_num_-1)*obs_dim_, obs_dim_) = current_obs_;
+
+        obs_total_.segment(0, obs_dim_) = current_obs_;
+        obs_total_.segment(obs_dim_, obs_dim_*obs_his_num_) = obs_history_;
+        //std::cout << "obs_history_ :" << obs_history_.transpose() << std::endl;
+        //std::cout << "current_obs_ :" << current_obs_.transpose() << std::endl;
+
+        last_dof_pos2_ = last_dof_pos1_;
+        last_dof_pos1_ = last_dof_pos0_;
+        last_dof_pos0_ = ro.joint_pos;
+
+        last_dof_vel1_ = last_dof_vel0_;
+        last_dof_vel0_ = ro.joint_vel;
+
+        Eigen::MatrixXf temp = obs_total_.transpose();
+        torch::Tensor a = torch::from_blob(temp.data(), {temp.rows(), temp.cols()}, torch::kFloat);
+        obs_total_tensor_ = a.clone();
+
+        obs_vector_.clear();
+        obs_vector_.emplace_back(obs_total_tensor_);
+        action_tensor_ = backbone_.forward(obs_vector_).toTensor();
+
+        // Eigen::Matrix<float, 12, 1> act(action_tensor_.data_ptr<float>());
+        Eigen::Map<Eigen::MatrixXf> act(action_tensor_.data_ptr<float>(), act_dim_, 1);
+        action_ = 0.25*act.col(0);
+        
+        last_action = last_action1_;
+        last_action1_ = last_action0_;
+        last_action0_ = action_*4;
+        // std::cout << "action_ :" << action_.transpose() << std::endl;
+
+        RobotAction ra;
+        ra.goal_joint_pos = action_ + dof_pos_default_;
+        //ra.goal_joint_pos = ra.goal_joint_pos*0.85 + 0.15 * (last_action*0.25+dof_pos_default_);
+        ra.goal_joint_pos.setZero(12);
+        // // 将第一个元素设置为 1
+        ra.goal_joint_pos[4] = -2;
+        ra.goal_joint_vel = VecXf::Zero(act_dim_);
+        ra.tau_ff = VecXf::Zero(act_dim_);
+        ra.kp = kp_;
+        ra.kd = kd_;
+        ++run_cnt_;
+
+        return ra;
+    }
+};
+
+#endif
+

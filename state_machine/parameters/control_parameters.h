@@ -20,10 +20,18 @@ class ControlParameters
 {
 private:
     void GenerateLite3Parameters();
+    void GenerateEQR1Parameters();
+    void GenerateGo2Parameters();
 
 public:
     ControlParameters(RobotType robot_type){
         if(robot_type==RobotType::Lite3) GenerateLite3Parameters();
+        else if(robot_type == RobotType::eqr1) {
+            GenerateEQR1Parameters();    // 新增EQR参数（用户需实现）
+        }
+        else if(robot_type == RobotType::Go2) {
+            GenerateGo2Parameters();    // 新增EQR参数（用户需实现）
+        }
         else{
             std::cerr << "Not Deafult Robot" << std::endl;
         }
@@ -35,6 +43,11 @@ public:
      */
     float body_len_x_, body_len_y_;
     float hip_len_, thigh_len_, shank_len_;
+
+    /**
+     * @brief joint offset
+     */
+    float rotation, offset;
 
     /**
      * @brief stand height configure

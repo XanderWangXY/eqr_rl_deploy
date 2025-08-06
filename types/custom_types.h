@@ -6,6 +6,8 @@
 namespace types{
     enum RobotType{
         Lite3,
+        eqr1,
+        Go2
     };
 
     enum RobotMotionState{

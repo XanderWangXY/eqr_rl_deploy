@@ -58,27 +58,31 @@ private:
     float GetHipYPosByHeight(float h){
         float l1 = cp_ptr_->thigh_len_;
         float l2 = cp_ptr_->shank_len_;
+        float rotation = cp_ptr_->rotation;
+        float offset = cp_ptr_->offset;
         float default_pos = (cp_ptr_->fl_joint_lower_(1)+cp_ptr_->fl_joint_upper_(1)) / 2.;
         if(fabs(h) >= l1 + l2) {
             std::cerr << "error height input" << std::endl;
             return 0;
         }
-        float theta = -acos((l1*l1+h*h-l2*l2)/(2.*h*l1));
+        float theta = -rotation*acos((l1*l1+h*h-l2*l2)/(2.*h*l1));
         theta = LimitNumber(theta, cp_ptr_->fl_joint_lower_(1), cp_ptr_->fl_joint_upper_(1));
-        return theta;
+        return theta+offset;
     }
 
     float GetKneePosByHeight(float h){
         float l1 = cp_ptr_->thigh_len_;
         float l2 = cp_ptr_->shank_len_;
+        float rotation = cp_ptr_->rotation;
+        float offset = cp_ptr_->offset;
         float default_pos = (cp_ptr_->fl_joint_lower_(2)+cp_ptr_->fl_joint_upper_(2)) / 2.;
         if(fabs(h) >= l1 + l2) {
             std::cerr << "error height input" << std::endl;
             return 0;
         }
-        float theta = M_PI-acos((l1*l1+l2*l2-h*h)/(2*l1*l2));
+        float theta = M_PI-rotation*acos((l1*l1+l2*l2-h*h)/(2*l1*l2));
         theta = LimitNumber(theta, cp_ptr_->fl_joint_lower_(2), cp_ptr_->fl_joint_upper_(2));
-        return theta;
+        return theta+offset;
     }
     // 全局计时函数
     static double GetGlobalTimeStamp() {

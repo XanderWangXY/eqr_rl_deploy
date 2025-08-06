@@ -43,6 +43,11 @@ private:
             if(std::isnan(joint_pos_lower(i)) || joint_pos_(i) > joint_pos_upper(i)+0.1 || joint_pos_(i) < joint_pos_lower(i)-0.1) {
                 // std::cout << "joint pos " << i << " : " << joint_pos_(i) << " | " 
                 //                                         << joint_pos_lower(i) << " " << joint_pos_upper(i) << std::endl;
+                // 打印具体超限的关节索引、当前值及限制范围
+                std::cout << "Joint " << i << " position out of limit! "
+                          << "Current: " << joint_pos_(i) << ", "
+                          << "Limit: [" << joint_pos_lower(i) - 0.1 << ", " 
+                          << joint_pos_upper(i) + 0.1 << "]" << std::endl;
                 return false;
             }
             if(std::isnan(joint_vel_(i)) || (joint_vel_(i)) > cp_ptr_->joint_vel_limit_(i%3) + 0.1) {

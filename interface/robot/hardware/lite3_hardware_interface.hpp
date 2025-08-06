@@ -2,121 +2,100 @@
 #define LITE3_HARDWARE_INTERFACE_HPP_
 
 #include "robot_interface.h"
-#include "ehr_hardware.h"
-#include <memory>
+#include "lite3_types.h"
+#include "receiver.h"
+#include "sender.h"
 
-class Lite3HardwareInterface : public RobotInterface {
+using namespace lite3;
+
+class Lite3HardwareInterface : public RobotInterface
+{
 private:
-    std::shared_ptr<EhrHardware> ehr_hw_;
-    ehr_body_state state_;
+    RobotData* robot_data_=nullptr;
+    RobotCmd robot_joint_cmd_{};
+    Receiver* receiver_ = nullptr;
+    Sender* sender_ = nullptr;
+
     Vec3f omega_body_, rpy_, acc_;
     VecXf joint_pos_, joint_vel_, joint_tau_;
-
+    std::thread hw_thread_;
 public:
-    Lite3HardwareInterface(const std::string& robot_name)
-    : RobotInterface(robot_name, 12) {
-        std::cout << robot_name << " is using EHR Hardware Interface" << std::endl;
+    Lite3HardwareInterface(const std::string& robot_name, 
+                        int local_port=43897, 
+                        std::string robot_ip="192.168.2.1",
+                        int robot_port=43893):RobotInterface(robot_name, 12){
+        std::cout << robot_name << " is using Lite3 Hardware Interface" << std::endl;
+        receiver_ = new Receiver(local_port);
+        sender_ = new Sender(robot_ip, robot_port);
+        sender_->RobotStateInit();
+    }
+    ~Lite3HardwareInterface(){}
 
-        ehr_hw_ = std::make_shared<EhrHardware>();
-        ehr_hw_->GetInterface()->Init("/home/ehr/wxy/eqr_rl_deploy/interface/robot/hardware/hardware_interface_ehr02.yaml");
-
-        state_.joint_num = dof_num_;
-        state_.q_joints = new double[dof_num_];
-        state_.v_joints = new double[dof_num_];
-        state_.f_joints = new double[dof_num_];
-        state_.gear_ratios = new double[dof_num_];
-
-        state_.kp_joints = new double[dof_num_];
-        state_.kd_joints = new double[dof_num_];
-        state_.ki_joints = new double[dof_num_];
-
-        state_.q_joint_desired = new double[dof_num_];
-        state_.v_joint_desired = new double[dof_num_];
-        state_.ff_joint_desired = new double[dof_num_];
+    virtual void Start(){
+        receiver_->StartWork();                        
+        robot_data_ = &(receiver_->GetState());
+        if (sender_ != nullptr)
+            sender_->ControlGet(2);
     }
 
-    ~Lite3HardwareInterface() {
-        delete[] state_.q_joints;
-        delete[] state_.v_joints;
-        delete[] state_.f_joints;
-        delete[] state_.gear_ratios;
-        delete[] state_.kp_joints;
-        delete[] state_.kd_joints;
-        delete[] state_.ki_joints;
-        delete[] state_.q_joint_desired;
-        delete[] state_.v_joint_desired;
-        delete[] state_.ff_joint_desired;
+    virtual void Stop(){
+        if(sender_ != nullptr){
+            sender_->ControlGet(1);
+        }
     }
 
-    virtual void Start() override {
-        ehr_hw_->GetInterface()->Read(&state_);
+    virtual double GetInterfaceTimeStamp(){
+        return robot_data_->tick*0.001;
     }
-
-    virtual void Stop() override {
-        // 暂无特定停止控制逻辑，如有可在此添加
-    }
-
-    virtual double GetInterfaceTimeStamp() override {
-        // ⚠️ 无法完善：state_ 结构中没有明确的时间戳字段（如 tick 或 timestamp）
-        // 请确认是否存在某字段记录采样时间，单位是否为 ms
-        return 0.0;
-    }
-
-    virtual VecXf GetJointPosition() override {
+    virtual VecXf GetJointPosition() {
         joint_pos_ = VecXf::Zero(dof_num_);
-        for (int i = 0; i < dof_num_; ++i)
-            joint_pos_(i) = state_.q_joints[i];
+        for(int i=0;i<dof_num_;++i){
+            joint_pos_(i) = robot_data_->joint_data.joint_data[i].position;
+        }
         return joint_pos_;
-    }
-
-    virtual VecXf GetJointVelocity() override {
+    };
+    virtual VecXf GetJointVelocity() {
         joint_vel_ = VecXf::Zero(dof_num_);
-        for (int i = 0; i < dof_num_; ++i)
-            joint_vel_(i) = state_.v_joints[i];
+        for(int i=0;i<dof_num_;++i){
+            joint_vel_(i) = robot_data_->joint_data.joint_data[i].velocity;
+        }
         return joint_vel_;
     }
-
-    virtual VecXf GetJointTorque() override {
+    virtual VecXf GetJointTorque() {
         joint_tau_ = VecXf::Zero(dof_num_);
-        for (int i = 0; i < dof_num_; ++i)
-            joint_tau_(i) = state_.f_joints[i];
+        for(int i=0;i<dof_num_;++i){
+            joint_tau_(i) = robot_data_->joint_data.joint_data[i].torque;
+        }
         return joint_tau_;
     }
-
-    virtual Vec3f GetImuRpy() override {
-        // ⚠️ 假设 q2_base[3~5] 单位为角度（°）
-        rpy_ << state_.q2_base[3] * M_PI / 180.0,
-                state_.q2_base[4] * M_PI / 180.0,
-                state_.q2_base[5] * M_PI / 180.0;
+    virtual Vec3f GetImuRpy() {
+        rpy_ << robot_data_->imu.roll/180.*M_PI, robot_data_->imu.pitch/180.*M_PI, robot_data_->imu.yaw/180.*M_PI;
         return rpy_;
     }
-
-    virtual Vec3f GetImuAcc() override {
-        acc_ << state_.a_base[0], state_.a_base[1], state_.a_base[2];
+    virtual Vec3f GetImuAcc() {
+        acc_ << robot_data_->imu.acc_x, robot_data_->imu.acc_y, robot_data_->imu.acc_z;
         return acc_;
     }
-
-    virtual Vec3f GetImuOmega() override {
-        omega_body_ << state_.v_base[3], state_.v_base[4], state_.v_base[5];
+    virtual Vec3f GetImuOmega() {
+        omega_body_ << robot_data_->imu.omega_x, robot_data_->imu.omega_y, robot_data_->imu.omega_z;
         return omega_body_;
     }
-
-    virtual VecXf GetContactForce() override {
-        // ⚠️ 无法完善：state_ 结构体未提供足端受力数据，暂设为0
+    virtual VecXf GetContactForce() {
         return VecXf::Zero(4);
     }
-
-    virtual void SetJointCommand(Eigen::Matrix<float, Eigen::Dynamic, 5> input) override {
-        for (int i = 0; i < dof_num_; ++i) {
-            state_.kp_joints[i]        = input(i, 0);
-            state_.q_joint_desired[i]  = input(i, 1);
-            state_.kd_joints[i]        = input(i, 2);
-            state_.v_joint_desired[i]  = input(i, 3);
-            state_.ff_joint_desired[i] = input(i, 4);
+    virtual void SetJointCommand(Eigen::Matrix<float, Eigen::Dynamic, 5> input){
+        for(int i=0;i<dof_num_;++i){
+            robot_joint_cmd_.joint_cmd[i].kp       = input(i, 0);
+            robot_joint_cmd_.joint_cmd[i].position = input(i, 1);
+            robot_joint_cmd_.joint_cmd[i].kd       = input(i, 2);
+            robot_joint_cmd_.joint_cmd[i].velocity = input(i, 3);
+            robot_joint_cmd_.joint_cmd[i].torque   = input(i, 4);
         }
-        ehr_hw_->GetInterface()->Write(state_);
-        ehr_hw_->GetInterface()->Read(&state_);
+        joint_cmd_ = input;
+        sender_->SendCmd(robot_joint_cmd_);
     }
 };
 
-#endif  // EHR_HARDWARE_INTERFACE_HPP_
+
+
+#endif
