@@ -48,7 +48,7 @@ public:
                             -0.0, -1, 1.8;
         kp_ = 20.*VecXf::Ones(12);
         kd_ = 0.7*VecXf::Ones(12);
-        max_cmd_vel_ << 0.6, 0.6, 0.8;
+        max_cmd_vel_ << 1.6, 0.6, 0.8;
 
         try { 
             backbone_ = torch::jit::load(policy_path_); 

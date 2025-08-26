@@ -161,9 +161,9 @@ public:
         RobotAction ra;
         ra.goal_joint_pos = action_ + dof_pos_default_;
         //ra.goal_joint_pos = ra.goal_joint_pos*0.85 + 0.15 * (last_action*0.25+dof_pos_default_);
-        ra.goal_joint_pos.setZero(12);
+        // ra.goal_joint_pos.setZero(12);
         // // 将第一个元素设置为 1
-        ra.goal_joint_pos[4] = -2;
+        // ra.goal_joint_pos[4] = -2;
         ra.goal_joint_vel = VecXf::Zero(act_dim_);
         ra.tau_ff = VecXf::Zero(act_dim_);
         ra.kp = kp_;

@@ -57,6 +57,7 @@ class MuJoCoSimulation:
         self.dof_num = len(self.actuator_ids)
 
         # Initialize standing pose
+        self.model_name = model_key
         self._set_initial_pose(model_key)
 
         # Buffers
@@ -102,7 +103,10 @@ class MuJoCoSimulation:
         mat = np.zeros(9, dtype=np.float64)
         mujoco.mju_quat2Mat(mat, q_world.astype(np.float64))
         R = mat.reshape(3, 3)
-        body_acc = self.data.sensordata[-3:]
+        if self.model_name == "go2":
+            body_acc = self.data.sensordata[-3:]
+        elif self.model_name == "lite3":
+            body_acc = self.data.sensordata[16:19]
 
         print(f"{Fore.CYAN}=== [Debug Info] ==={Style.RESET_ALL}")
         print(f"{Fore.GREEN}[IMU] RPY        :{Style.RESET_ALL} {format_array(rpy.flatten())}")
@@ -211,7 +215,10 @@ class MuJoCoSimulation:
         q_world = self.data.qpos[3:7]
         rpy = self.quaternion_to_euler(q_world)
         angvel_b = self.data.qvel[3:6]
-        body_acc = self.data.sensordata[-3:]
+        if self.model_name == "go2":
+            body_acc = self.data.sensordata[-3:]
+        elif self.model_name == "lite3":
+            body_acc = self.data.sensordata[16:19]
 
         # Joints
         q = self.data.qpos[7:7+self.dof_num]

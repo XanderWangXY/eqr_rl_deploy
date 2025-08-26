@@ -114,8 +114,8 @@ public:
         std::string urdf_path = "";
         // uc_ptr_ = std::make_shared<SkydroidGamepadInterface>(12121);
         //uc_ptr_ = std::make_shared<RetroidGamepadInterface>(12121);
-        uc_ptr_ = std::make_shared<KeyboardInterface>();
-        //uc_ptr_ = std::make_shared<LogiInterface>();
+        // uc_ptr_ = std::make_shared<KeyboardInterface>();
+        uc_ptr_ = std::make_shared<LogiInterface>();
         
         #ifdef ROBOT_TYPE_Lite3
         if(robot_type == RobotType::Lite3){

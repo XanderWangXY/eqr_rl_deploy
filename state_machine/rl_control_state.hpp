@@ -15,7 +15,8 @@
 #include "policy_runner_base.hpp"
 #include "lite3_test_policy_runner.hpp"
 #include "eqr1_policy_runner.hpp" 
-#include "go2_policy_runner.hpp"
+// #include "go2_policy_runner.hpp"
+#include "go2_policy_runner_ts.hpp"
 
 class RLControlState : public StateBase
 {
@@ -88,7 +89,7 @@ public:
                 test_policy_ = std::make_shared<Eqr1PolicyRunner>("test");  // 使用eqr1策略
             } 
             else if(robot_type == RobotType::Go2) {
-                test_policy_ = std::make_shared<Go2PolicyRunner>("test");  // 使用eqr1策略
+                test_policy_ = std::make_shared<Go2PolicyRunner>("test");  
             } 
             else {
                 std::cerr << "Unsupported robot type for RL policy: " << static_cast<int>(robot_type) << std::endl;
