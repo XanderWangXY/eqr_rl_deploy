@@ -12,10 +12,10 @@ from colorama import init, Fore, Style
 # Initialize colorama for colored terminal output
 init(autoreset=True)
 
-MODEL_NAME = "go2"
-XML_PATH = "../../../third_party/URDF/go2/scene.xml"
-# MODEL_NAME = "lite3"
-# XML_PATH = "../../../third_party/URDF/Lite3/Lite3_mjcf/mjcf/Lite3_stair.xml"
+# MODEL_NAME = "go2"
+# XML_PATH = "../../../third_party/URDF/go2/scene.xml"
+MODEL_NAME = "lite3"
+XML_PATH = "../../../third_party/URDF/Lite3/Lite3_mjcf/mjcf/Lite3_stair.xml"
 LOCAL_PORT = 20001
 CTRL_IP = "127.0.0.1"
 CTRL_PORT = 30010

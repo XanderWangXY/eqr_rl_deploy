@@ -79,7 +79,7 @@ private:
 
 public:
     Go2PolicyRunner(std::string policy_name):PolicyRunnerBase(policy_name){
-        policy_path_ = GetAbsPath()+"/../policy/go2_amp_rough.pt";
+        policy_path_ = GetAbsPath()+"/../policy/lite3_handstand.pt";
         obs_total_dim_ = obs_dim_ + obs_his_num_*obs_dim_;
         dof_pos_default_.setZero(12);
         dof_pos_default_ << 0.1, 0.8, -1.5,
@@ -88,7 +88,7 @@ public:
                             -0.1, 1.0, -1.5;
         kp_ = 25.*VecXf::Ones(12);
         kd_ = 0.5*VecXf::Ones(12);
-        max_cmd_vel_ << 2.0, 0.5, 1.57;
+        max_cmd_vel_ << 1.0, 0.5, 1.57;
 
         // ✅ 初始化缩放系数：第1,4,7,10位（索引0,3,6,9）为0.125，其余为0.25
         // action_scale.resize(12);  // 12个电机对应12个系数

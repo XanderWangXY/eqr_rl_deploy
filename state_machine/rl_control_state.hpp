@@ -14,7 +14,8 @@
 #include "state_base.h"
 #include "policy_runner_base.hpp"
 #include "lite3_test_policy_runner.hpp"
-#include "eqr1_policy_runner.hpp" 
+// #include "eqr1_policy_runner.hpp" 
+#include "eqr1_policy_runner_vae.hpp"
 // #include "go2_policy_runner.hpp"
 #include "go2_policy_runner_ts.hpp"
 

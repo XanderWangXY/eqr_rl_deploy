@@ -173,7 +173,7 @@ class PyBulletSimulation:
 
 
 if __name__ == '__main__':
-    ps = PyBulletSimulation("lite3")
+    ps = PyBulletSimulation("eqr1")
     receiveThread = threading.Thread(target=ps.receiveJointCmd)
     receiveThread.start()
     ps.startSimulation()

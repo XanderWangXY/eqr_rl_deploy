@@ -39,7 +39,7 @@ private:
 
 public:
     Lite3TestPolicyRunner(std::string policy_name):PolicyRunnerBase(policy_name){
-        policy_path_ = GetAbsPath()+"/../policy/lite3_model_8000.pt";
+        policy_path_ = GetAbsPath()+"/../policy/lite3_handstand.pt";
         obs_total_dim_ = obs_dim_ + obs_his_num_*obs_dim_;
         dof_pos_default_.setZero(12);
         dof_pos_default_ << 0.0, -1, 1.8,
@@ -48,7 +48,7 @@ public:
                             -0.0, -1, 1.8;
         kp_ = 20.*VecXf::Ones(12);
         kd_ = 0.7*VecXf::Ones(12);
-        max_cmd_vel_ << 1.6, 0.6, 0.8;
+        max_cmd_vel_ << 1.0, 0.6, 1.57;
 
         try { 
             backbone_ = torch::jit::load(policy_path_); 
